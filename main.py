@@ -19,3 +19,10 @@ def read_root():
 @app.get("/api/users")
 async def fetch_users():
     return db;
+
+app.post("/api/users")
+async def add_user(user: User):
+    db.append(user)
+    return {"id": user.id}
+
+ 
