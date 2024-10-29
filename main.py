@@ -20,9 +20,14 @@ def read_root():
 async def fetch_users():
     return db;
 
-app.post("/api/users")
+@app.post("/api/users")
 async def add_user(user: User):
     db.append(user)
     return {"id": user.id}
 
- 
+
+@app.delete("/api/users/{user_id}")
+async def delete_user(user_id: UUID):
+    for user in db :
+        if user_id == user_id:
+            db.remove(user)
