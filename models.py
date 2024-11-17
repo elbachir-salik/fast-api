@@ -1,28 +1,17 @@
-from pydantic import BaseModel
-from uuid import UUID, uuid4
-from typing import Optional, List
-from enum import Enum
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from database import Base
 
-class Gender(str, Enum):
-    male = "male"
-    female = "female"
+class Questions(Base):
+    __tablename__ = 'questions'
 
-class Role(str, Enum):
-    admin = "admin"
-    user = "user"
-    student =  "student"
+    id = Column(Integer, primary_key=True, index=True)
+    question_text = Column(String, index=True)
 
-class User(BaseModel):
-    id: Optional[UUID] = uuid4()
-    fist_name: str
-    last_name: str
-    middle_name: Optional[str] = None
-    gender: Gender
-    roles: List[Role]
+class Choices(Base):
+    __tablename__ = 'choices'
 
-class UserUpdateModel(BaseModel):
-    first_name: Optional[str]
-    last_name: Optional[str]
-    middle_nem: Optional[str] = None
-    roles: Optional[List[Role]]
+    id = Column(Integer, primary_key=True, index=True)
+    choice_text =  Column(String, index=True)
+    is_correct = Column(Boolean, default=False)
+    question_id = Column(Integer, ForeignKey("questions.id"))
 

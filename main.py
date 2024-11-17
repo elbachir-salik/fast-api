@@ -1,57 +1,40 @@
-from fastapi import FastAPI, HTTPException
-from models import User, Gender, Role, UserUpdateModel
-from typing import List
-from uuid import UUID
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
+from typing import List, Annotated
+import models
+from database import engine, SessionLocal
+from sqlalchemy.orm import Session
+
 
 app = FastAPI()
+models.Base.metadata.create_all(bind=engine)
 
-db: List[User] = [
+
+class ChoiceBase(BaseModel):
+    choice_text: str
+    is_correct: bool
+
+class QuestionBase(BaseModel):
+    question_text: str
+    choices: List[ChoiceBase]
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+db_dependency = Annotated[Session, Depends(get_db)]
+
+@app.post("/questions")
+async def create_questions(question: QuestionBase, db:db_dependency):
+    db_question = models.Questions(question_text= question.question_text)
+    db.add(db_question)
+    db.commit()
+    db.refresh(db_question)
+    for choice in question.choices:
+        db_choice = models.Choices(choice_text= choice.choice_text, is_correct=choice.is_correct, question_id= db_question.id)
+        db.add(db_choice)
+    db.commit()
     
-    User(id=UUID("ea04b18c-93b4-417f-a9fb-d3136bf2e4c1"), fist_name="elbachir", last_name="salik", gender=Gender.male, roles=[Role.student]),
-    User(id=UUID("56e7813a-bca1-43f4-9d8d-897dfb26f027"), fist_name="queen", last_name="morgan", gender=Gender.female, roles=[Role.admin,Role.user])
-]
-
-
-@app.get("/")
-def read_root():
-    return {"Hello": "Salik"}
-
-@app.get("/api/users")
-async def fetch_users():
-    return db;
-
-@app.post("/api/users")
-async def add_user(user: User):
-    db.append(user)
-    return {"id": user.id}
-
-
-@app.delete("/api/users/{user_id}")
-async def delete_user(user_id: UUID):
-    for user in db :
-        if user_id == user_id:
-            db.remove(user)
-            return
-    raise HTTPException(
-        status_code=404,
-        detail= f"User with id : {user_id} not found"
-    )
-
-
-@app.put("/api/users")
-async def update_user(user_update: UserUpdateModel, user_id: UUID):
-    for user in db:
-        if user_id == user_id:
-            if user_update.first_name is not None:
-                user.first_name = user_update.first_name
-            if user_update.last_name is not None:
-                user.last_name = user_update.last_name
-            if user_update.middle_name is not None:
-                user.middle_name = user_update.middle_name
-            if user_update.roles is not None:
-                user.roles = user_update.roles
-            return
-    raise HTTPException(
-        status_code=404,
-        detail=f"user with id : {user_id} not found"
-    )
